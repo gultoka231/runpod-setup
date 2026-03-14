@@ -64,66 +64,43 @@ mkdir -p "$MODELS/loras"
 mkdir -p "$MODELS/upscale_models"
 mkdir -p "$MODELS/ultralytics/bbox"
 
-# Install/upgrade huggingface_hub
-pip install huggingface_hub --upgrade --quiet
-HF_CLI="python3 -m huggingface_hub.commands.huggingface_cli"
+HF="https://huggingface.co"
 
 echo ""
 echo "=== [4/5] Downloading Wan 2.1 models ==="
 
 HF_BASE="https://huggingface.co"
 
-# --- Wan 2.1 T2I 1.3B (image generation) ---
-echo "  -> wan2.1_t2i_1.3B_bf16.safetensors"
-$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-  --include "split_files/diffusion_models/wan2.1_t2i_1.3B_bf16.safetensors" \
-  --local-dir "$MODELS"
+dl() {
+  local url=$1
+  local dest=$2
+  echo "  -> Downloading $(basename $dest)..."
+  wget -q --show-progress -O "$dest" "$url" || echo "  WARNING: failed to download $url"
+}
 
-# --- Wan 2.1 T2V 1.3B (video generation, fits 24GB) ---
-echo "  -> wan2.1_t2v_1.3B_bf16.safetensors"
-$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-  --include "split_files/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors" \
-  --local-dir "$MODELS"
+dl "$HF/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_t2i_1.3B_bf16.safetensors" \
+   "$MODELS/diffusion_models/wan2.1_t2i_1.3B_bf16.safetensors"
 
-# --- Wan 2.1 I2V 480p 1.3B (image-to-video, consistent character) ---
-echo "  -> wan2.1_i2v_480p_1.3B_bf16.safetensors"
-$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-  --include "split_files/diffusion_models/wan2.1_i2v_480p_1.3B_bf16.safetensors" \
-  --local-dir "$MODELS"
+dl "$HF/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors" \
+   "$MODELS/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors"
 
-# --- VAE ---
-echo "  -> wan_2.1_vae.safetensors"
-$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-  --include "split_files/vae/wan_2.1_vae.safetensors" \
-  --local-dir "$MODELS"
+dl "$HF/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_1.3B_bf16.safetensors" \
+   "$MODELS/diffusion_models/wan2.1_i2v_480p_1.3B_bf16.safetensors"
 
-# --- T5 Text Encoder (fp8 saves ~8GB VRAM vs fp32) ---
-echo "  -> umt5_xxl_fp8_e4m3fn_scaled.safetensors"
-$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-  --include "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
-  --local-dir "$MODELS"
+dl "$HF/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors" \
+   "$MODELS/vae/wan_2.1_vae.safetensors"
 
-# --- CLIP Vision for IPAdapter + WanVideo I2V ---
-echo "  -> clip_vision (ViT-H)"
-$HF_CLI download h94/IP-Adapter \
-  --include "models/image_encoder/model.safetensors" \
-  --local-dir "/tmp/ipadapter_dl"
-cp "/tmp/ipadapter_dl/models/image_encoder/model.safetensors" \
+dl "$HF/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
+   "$MODELS/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+
+dl "$HF/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors" \
    "$MODELS/clip_vision/clip_vision_vit_h.safetensors"
 
-# --- IPAdapter models (for SD/SDXL consistent character) ---
-echo "  -> ip-adapter-plus-face_sdxl_vit-h.safetensors"
-$HF_CLI download h94/IP-Adapter \
-  --include "sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
-  --local-dir "/tmp/ipadapter_dl"
-cp "/tmp/ipadapter_dl/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
-   "$MODELS/ipadapter/"
+dl "$HF/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
+   "$MODELS/ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors"
 
-# --- Face detection models for Impact Pack FaceDetailer ---
-echo "  -> face_yolov8m.pt (bbox detector)"
-$HF_CLI download Bingsu/adetailer \
-  --include "face_yolov8m.pt" \
-  --local-dir "$MODELS/ultralytics/bbox"
+dl "$HF/Bingsu/adetailer/resolve/main/face_yolov8m.pt" \
+   "$MODELS/ultralytics/bbox/face_yolov8m.pt"
 
 # --- ESRGAN upscaler (optional quality boost) ---
 echo "  -> 4x-UltraSharp.pth (upscaler)"
@@ -132,25 +109,8 @@ wget -q -O "$MODELS/upscale_models/4x-UltraSharp.pth" \
   echo "  Warning: upscaler download failed, skipping."
 
 echo ""
-echo "=== [5/5] Fixing file paths (moving from split_files subfolders) ==="
-
-# $HF_CLI downloads into split_files/... structure — flatten it
-flatten_models() {
-  local src_dir=$1
-  local dst_dir=$2
-  if [ -d "$src_dir" ]; then
-    find "$src_dir" -maxdepth 1 -name "*.safetensors" -exec mv {} "$dst_dir/" \;
-    find "$src_dir" -maxdepth 1 -name "*.gguf" -exec mv {} "$dst_dir/" \;
-  fi
-}
-
-flatten_models "$MODELS/split_files/diffusion_models" "$MODELS/diffusion_models"
-flatten_models "$MODELS/split_files/vae" "$MODELS/vae"
-flatten_models "$MODELS/split_files/text_encoders" "$MODELS/text_encoders"
-
-# Cleanup
+echo "=== [5/5] Cleanup ==="
 rm -rf "$MODELS/split_files" 2>/dev/null || true
-rm -rf /tmp/ipadapter_dl 2>/dev/null || true
 
 echo ""
 echo "============================================"
