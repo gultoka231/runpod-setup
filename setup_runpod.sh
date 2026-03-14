@@ -64,8 +64,9 @@ mkdir -p "$MODELS/loras"
 mkdir -p "$MODELS/upscale_models"
 mkdir -p "$MODELS/ultralytics/bbox"
 
-# Install huggingface-cli if missing
-pip install "huggingface_hub[cli]" --quiet
+# Install/upgrade huggingface_hub
+pip install huggingface_hub --upgrade --quiet
+HF_CLI="python3 -m huggingface_hub.commands.huggingface_cli"
 
 echo ""
 echo "=== [4/5] Downloading Wan 2.1 models ==="
@@ -74,37 +75,37 @@ HF_BASE="https://huggingface.co"
 
 # --- Wan 2.1 T2I 1.3B (image generation) ---
 echo "  -> wan2.1_t2i_1.3B_bf16.safetensors"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
   --include "split_files/diffusion_models/wan2.1_t2i_1.3B_bf16.safetensors" \
   --local-dir "$MODELS"
 
 # --- Wan 2.1 T2V 1.3B (video generation, fits 24GB) ---
 echo "  -> wan2.1_t2v_1.3B_bf16.safetensors"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
   --include "split_files/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors" \
   --local-dir "$MODELS"
 
 # --- Wan 2.1 I2V 480p 1.3B (image-to-video, consistent character) ---
 echo "  -> wan2.1_i2v_480p_1.3B_bf16.safetensors"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
   --include "split_files/diffusion_models/wan2.1_i2v_480p_1.3B_bf16.safetensors" \
   --local-dir "$MODELS"
 
 # --- VAE ---
 echo "  -> wan_2.1_vae.safetensors"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
   --include "split_files/vae/wan_2.1_vae.safetensors" \
   --local-dir "$MODELS"
 
 # --- T5 Text Encoder (fp8 saves ~8GB VRAM vs fp32) ---
 echo "  -> umt5_xxl_fp8_e4m3fn_scaled.safetensors"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+$HF_CLI download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
   --include "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
   --local-dir "$MODELS"
 
 # --- CLIP Vision for IPAdapter + WanVideo I2V ---
 echo "  -> clip_vision (ViT-H)"
-huggingface-cli download h94/IP-Adapter \
+$HF_CLI download h94/IP-Adapter \
   --include "models/image_encoder/model.safetensors" \
   --local-dir "/tmp/ipadapter_dl"
 cp "/tmp/ipadapter_dl/models/image_encoder/model.safetensors" \
@@ -112,7 +113,7 @@ cp "/tmp/ipadapter_dl/models/image_encoder/model.safetensors" \
 
 # --- IPAdapter models (for SD/SDXL consistent character) ---
 echo "  -> ip-adapter-plus-face_sdxl_vit-h.safetensors"
-huggingface-cli download h94/IP-Adapter \
+$HF_CLI download h94/IP-Adapter \
   --include "sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
   --local-dir "/tmp/ipadapter_dl"
 cp "/tmp/ipadapter_dl/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
@@ -120,7 +121,7 @@ cp "/tmp/ipadapter_dl/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors" \
 
 # --- Face detection models for Impact Pack FaceDetailer ---
 echo "  -> face_yolov8m.pt (bbox detector)"
-huggingface-cli download Bingsu/adetailer \
+$HF_CLI download Bingsu/adetailer \
   --include "face_yolov8m.pt" \
   --local-dir "$MODELS/ultralytics/bbox"
 
@@ -133,7 +134,7 @@ wget -q -O "$MODELS/upscale_models/4x-UltraSharp.pth" \
 echo ""
 echo "=== [5/5] Fixing file paths (moving from split_files subfolders) ==="
 
-# huggingface-cli downloads into split_files/... structure — flatten it
+# $HF_CLI downloads into split_files/... structure — flatten it
 flatten_models() {
   local src_dir=$1
   local dst_dir=$2
