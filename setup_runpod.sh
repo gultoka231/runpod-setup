@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# RunPod Setup: LUMI AI Influencer Pipeline v4
+# RunPod Setup: LUMI AI Influencer Pipeline v5
 # GPU: RTX 4090 24GB VRAM | Volume >= 200GB
 #
 # ПАЙПЛАЙНЫ:
@@ -54,7 +54,7 @@ echo "=== [2/9] Кастомные ноды ==="
 
 install_node() {
   local repo_url=$1
-  local dir_name=$(basename "$repo_url" .git)
+  local dir_name=${2:-$(basename "$repo_url" .git)}
   local target="$CUSTOM_NODES/$dir_name"
   if [ ! -d "$target" ]; then
     echo "  -> Клонируем $dir_name..."
@@ -81,6 +81,7 @@ install_node "https://github.com/cubiq/ComfyUI_InstantID"
 install_node "https://github.com/cubiq/ComfyUI_IPAdapter_plus"
 install_node "https://github.com/Fannovel16/comfyui_controlnet_aux"
 install_node "https://github.com/ltdrdata/ComfyUI-Impact-Pack"
+install_node "https://github.com/ltdrdata/ComfyUI-Impact-Subpack" "comfyui-impact-subpack"
 
 # --- ВИДЕО: Wan ---
 install_node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"
@@ -98,8 +99,10 @@ echo "=== [3/9] Python зависимости ==="
 pip install insightface onnxruntime-gpu -q
 pip install timm==0.9.16 --force-reinstall -q
 pip install -r "$CUSTOM_NODES/ComfyUI_InstantID/requirements.txt" -q
+# Пакеты для Impact Pack / Manager / WanVideoWrapper
+pip install toml piexif gguf dill ftfy ultralytics -q
 purge_cache
-echo "  -> insightface + onnxruntime-gpu + timm OK"
+echo "  -> Все Python зависимости установлены"
 
 # ============================================================
 echo ""
@@ -217,7 +220,7 @@ import os, torch
 
 print(f'  torch: {torch.__version__} | CUDA: {torch.cuda.is_available()}')
 
-libs = {'insightface': 'insightface', 'onnxruntime': 'onnxruntime', 'timm': 'timm'}
+libs = {'insightface': 'insightface', 'onnxruntime': 'onnxruntime', 'timm': 'timm', 'ultralytics': 'ultralytics', 'dill': 'dill', 'toml': 'toml'}
 for name, mod in libs.items():
     try:
         m = __import__(mod)
@@ -269,13 +272,16 @@ echo "============================================================"
 echo "  УСТАНОВКА ЗАВЕРШЕНА!"
 echo ""
 echo "  ВРУЧНУЮ загрузи через JupyterLab (Upload):"
-echo "    sh_woman_v1.safetensors  -> $MODELS/loras/"
-echo "    lumi_photo_studio_pro.json -> $COMFYUI_DIR/user/default/workflows/"
+echo "    sh_woman_v1.safetensors      -> $MODELS/loras/"
+echo "    lumi_photo_studio_pro.json   -> $COMFYUI_DIR/user/default/workflows/"
 echo ""
 echo "  Запуск ComfyUI:"
 echo "    python3 $COMFYUI_DIR/main.py --listen 0.0.0.0 --port 8188 --bf16-vae &"
 echo ""
-echo "  lumi_photo_studio_pro.json:"
+echo "  После запуска открывать ТОЛЬКО через RunPod:"
+echo "    My Pods -> Connect -> HTTP Service [8188]"
+echo ""
+echo "  lumi_photo_studio_pro.json — настройки:"
 echo "    Checkpoint : juggernautXL_v9Rdphoto2Lightning.safetensors"
 echo "    LoRA       : sh_woman_v1.safetensors  strength 0.8"
 echo "    InstantID  : weight 0.65"
